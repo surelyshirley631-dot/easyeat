@@ -71,36 +71,6 @@ const round1 = (value: number) => Math.round(value * 10) / 10
 
 const roundInt = (value: number) => Math.round(value)
 
-const offsetMacroCalories = (
-  carbsCalories: number,
-  fatCalories: number,
-  offset: number,
-): { carbsCalories: number; fatCalories: number } => {
-  if (offset >= 0) {
-    return {
-      carbsCalories: carbsCalories + offset,
-      fatCalories,
-    }
-  }
-
-  let deficit = Math.abs(offset)
-  const carbReduced = Math.min(carbsCalories, deficit)
-  const nextCarbs = carbsCalories - carbReduced
-  deficit -= carbReduced
-
-  if (deficit <= 0) {
-    return {
-      carbsCalories: nextCarbs,
-      fatCalories,
-    }
-  }
-
-  return {
-    carbsCalories: nextCarbs,
-    fatCalories: Math.max(fatCalories - deficit, 0),
-  }
-}
-
 export const calculateBmr = (profile: UserProfile): number => {
   // Mifflin-St Jeor Equation
   const sexOffset = profile.sex === 'male' ? 5 : -161

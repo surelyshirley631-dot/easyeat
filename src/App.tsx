@@ -4,8 +4,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type Dispatch,
-  type SetStateAction,
 } from 'react'
 import {
   Clock3,
@@ -36,21 +34,17 @@ import {
   type PopulationType,
 } from './lib/fuelLogic'
 import {
-  getOffsetsByStrategyMode,
   type StrategyMode,
   type TrainingAnchor,
-  type UserProfileRecord,
 } from './store/profileStoreTypes'
 import { useProfileStore } from './store/useProfileStore'
 
-type FormStep = 1 | 2 | 3
 type DayMode = 'training' | 'rest'
 type MealKey = '早餐' | '午餐' | '晚餐'
 type NutrientKey = 'kcal' | 'protein' | 'carbs' | 'fat' | 'fiber'
 type TrainingWindow = 'early' | 'noon' | 'afternoon' | 'night'
 type IntakeEntry = Record<NutrientKey, number>
 type IntakeMap = Record<MealKey, IntakeEntry>
-type ProfileFormState = Omit<UserProfileRecord, 'id'>
 
 type TrainingEntry = { plan: string; burnedKcal: number }
 
@@ -63,19 +57,6 @@ const defaultIntake: IntakeMap = {
 }
 
 const defaultTraining: TrainingEntry = { plan: '', burnedKcal: 0 }
-
-const defaultDraft = (): ProfileFormState => ({
-  name: '',
-  sex: 'female',
-  age: 28,
-  heightCm: 170,
-  weightKg: 65,
-  populationType: 'strength',
-  activityLevel: 'moderate',
-  strategyMode: 'hardcore',
-  trainingAnchor: '下午',
-  offsets: getOffsetsByStrategyMode('hardcore', 'strength'),
-})
 
 const anchorToWindow = (anchor: TrainingAnchor): TrainingWindow => {
   if (anchor === '上午') {
@@ -118,7 +99,6 @@ function App() {
     clearAllProfiles,
   } = useProfileStore()
   const [dayMode, setDayMode] = useState<DayMode>('training')
-  const [formStep, setFormStep] = useState<number>(1)
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [showSaved, setShowSaved] = useState(false)
@@ -960,7 +940,7 @@ function App() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="md:col-span-1">
               <AIFoodInput
-                onAddFood={(meal, added, rawText) => {
+                onAddFood={(meal, added) => {
                   addMealIntake(meal, added)
                 }}
               />
@@ -1520,7 +1500,7 @@ export default App
 function AIFoodInput({
   onAddFood,
 }: {
-  onAddFood: (meal: MealKey, added: IntakeEntry, rawText: string) => void
+  onAddFood: (meal: MealKey, added: IntakeEntry) => void
 }) {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
@@ -1725,7 +1705,7 @@ function AIFoodInput({
       calculated.fat = Math.round(calculated.fat * 10) / 10
       calculated.fiber = Math.round(calculated.fiber * 10) / 10
 
-      onAddFood(targetMeal, calculated, text)
+      onAddFood(targetMeal, calculated)
       setLoading(false)
       setText('')
       

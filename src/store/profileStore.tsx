@@ -6,14 +6,11 @@ import {
 } from 'react'
 import { profileStoreContext } from './profileStoreContext'
 import type { ProfileStorageSchema, ProfileStoreValue, UserProfileRecord } from './profileStoreTypes'
-import { getDefaultOffsetsByPopulation } from './profileStoreTypes'
 
 const API_BASE = 'http://localhost:3001/api'
 const STORAGE_KEY = 'fuel-logic-profiles-v2-active'
 
 const normalizeProfile = (profile: any): UserProfileRecord => {
-  const normalizedPopulation = profile.populationType ?? 'strength'
-
   let customTargets: UserProfileRecord['customTargets'] = undefined
   if (profile.customTrainingKcal !== undefined && profile.customTrainingKcal !== null) {
     customTargets = {
