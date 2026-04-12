@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id                String     @id @default(uuid())
+  name              String
+  sex               String     // "male" | "female"
+  age               Int
+  heightCm          Float
+  weightKg          Float
+  populationType    String     // "strength" | "general"
+  activityLevel     String     // "sedentary" | "light" | "moderate" | "high"
+  strategyMode      String     // "hardcore" | "steady" | "custom"
+  trainingAnchor    String     // "上午" | "中午" | "下午" | "晚后"
+  trainingDayOffset Float
+  restDayOffset     Float
+  
+  // Custom Targets (Optional)
+  customTrainingKcal    Float?
+  customTrainingProtein Float?
+  customTrainingCarbs   Float?
+  customTrainingFat     Float?
+  customRestKcal        Float?
+  customRestProtein     Float?
+  customRestCarbs       Float?
+  customRestFat         Float?
+
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  dailyLogs         DailyLog[]
+}
+
+model DailyLog {
+  id           String       @id @default(uuid())
+  profileId    String
+  date         String       // Format: "YYYY-MM-DD"
+  dayMode      String       // "training" | "rest"
+  trainingPlan String?      // e.g. "Chest & Back"
+  burnedKcal   Float?       @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  meals        MealIntake[]
+
+  @@unique([profileId, date])
+}
+
+model MealIntake {
+  id         String   @id @default(uuid())
+  dailyLogId String
+  mealType   String   // "早餐" | "午餐" | "晚餐"
+  kcal       Float    @default(0)
+  protein    Float    @default(0)
+  carbs      Float    @default(0)
+  fat        Float    @default(0)
+  fiber      Float    @default(0)
+
+  dailyLog   DailyLog @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
+
+  @@unique([dailyLogId, mealType])
+}
