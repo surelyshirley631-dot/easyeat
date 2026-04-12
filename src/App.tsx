@@ -38,6 +38,7 @@ import {
   type TrainingAnchor,
 } from './store/profileStoreTypes'
 import { useProfileStore } from './store/useProfileStore'
+import { supabase } from './lib/supabase'
 
 type DayMode = 'training' | 'rest'
 type MealKey = '早餐' | '午餐' | '晚餐'
@@ -142,9 +143,19 @@ function App() {
   useEffect(() => {
     if (!activeProfileId) return
 
-    fetch(`http://localhost:3001/api/logs/${activeProfileId}/${todayStr}`)
-      .then((res) => res.json())
-      .then((data) => {
+    supabase
+      .from('DailyLog')
+      .select('*, meals:MealIntake(*)')
+      .eq('profileId', activeProfileId)
+      .eq('date', todayStr)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Failed to fetch daily log:', error)
+          setSyncStatus('error')
+          return
+        }
+
         if (!data) return
         
         // Restore dayMode
@@ -175,10 +186,6 @@ function App() {
         setIntakeByContext((prev) => ({ ...prev, [ctxKey]: newIntake }))
         setSyncStatus('synced')
       })
-      .catch((err) => {
-        console.error('Failed to fetch daily log:', err)
-        setSyncStatus('error')
-      })
   }, [activeProfileId, todayStr])
 
   useEffect(() => {
@@ -190,29 +197,96 @@ function App() {
     if (!currentIntake && !currentTraining) return
 
     setSyncStatus('syncing')
-    const timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(async () => {
       const mealsToSave = meals.map((m) => ({
         mealType: m,
         ...(currentIntake?.[m] || defaultIntake[m]),
       }))
 
-      fetch('http://localhost:3001/api/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profileId: activeProfileId,
-          date: todayStr,
-          dayMode,
-          trainingPlan: currentTraining?.plan || '',
-          burnedKcal: currentTraining?.burnedKcal || 0,
-          meals: mealsToSave,
-        }),
-      })
-        .then(() => setSyncStatus('synced'))
-        .catch((err) => {
-          console.error('Failed to sync log:', err)
-          setSyncStatus('error')
-        })
+      try {
+        // 1. Get or create DailyLog
+        let { data: dailyLog, error: fetchError } = await supabase
+          .from('DailyLog')
+          .select('id')
+          .eq('profileId', activeProfileId)
+          .eq('date', todayStr)
+          .maybeSingle()
+
+        if (fetchError) throw fetchError
+
+        if (dailyLog) {
+          const { error: updateError } = await supabase
+            .from('DailyLog')
+            .update({
+              dayMode,
+              trainingPlan: currentTraining?.plan || '',
+              burnedKcal: currentTraining?.burnedKcal || 0,
+              updatedAt: new Date().toISOString(),
+            })
+            .eq('id', dailyLog.id)
+
+          if (updateError) throw updateError
+        } else {
+          const { data: newLog, error: insertError } = await supabase
+            .from('DailyLog')
+            .insert({
+              profileId: activeProfileId,
+              date: todayStr,
+              dayMode,
+              trainingPlan: currentTraining?.plan || '',
+              burnedKcal: currentTraining?.burnedKcal || 0,
+            })
+            .select('id')
+            .single()
+
+          if (insertError) throw insertError
+          dailyLog = newLog
+        }
+
+        // 2. Upsert Meals
+        if (dailyLog && dailyLog.id) {
+          for (const meal of mealsToSave) {
+            const { data: existingMeal, error: mealFetchError } = await supabase
+              .from('MealIntake')
+              .select('id')
+              .eq('dailyLogId', dailyLog.id)
+              .eq('mealType', meal.mealType)
+              .maybeSingle()
+
+            if (mealFetchError) throw mealFetchError
+
+            if (existingMeal) {
+              await supabase
+                .from('MealIntake')
+                .update({
+                  kcal: meal.kcal,
+                  protein: meal.protein,
+                  carbs: meal.carbs,
+                  fat: meal.fat,
+                  fiber: meal.fiber,
+                })
+                .eq('id', existingMeal.id)
+            } else {
+              await supabase
+                .from('MealIntake')
+                .insert({
+                  dailyLogId: dailyLog.id,
+                  mealType: meal.mealType,
+                  kcal: meal.kcal,
+                  protein: meal.protein,
+                  carbs: meal.carbs,
+                  fat: meal.fat,
+                  fiber: meal.fiber,
+                })
+            }
+          }
+        }
+        
+        setSyncStatus('synced')
+      } catch (err) {
+        console.error('Failed to sync log to Supabase:', err)
+        setSyncStatus('error')
+      }
     }, 1200)
 
     return () => clearTimeout(timeoutId)

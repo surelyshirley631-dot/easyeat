@@ -6,8 +6,8 @@ import {
 } from 'react'
 import { profileStoreContext } from './profileStoreContext'
 import type { ProfileStorageSchema, ProfileStoreValue, UserProfileRecord } from './profileStoreTypes'
+import { supabase } from '../lib/supabase'
 
-const API_BASE = 'http://localhost:3001/api'
 const STORAGE_KEY = 'fuel-logic-profiles-v2-active'
 
 const normalizeProfile = (profile: any): UserProfileRecord => {
@@ -64,13 +64,18 @@ export function ProfileStoreProvider({ children }: PropsWithChildren) {
 
   // Fetch profiles from backend
   useEffect(() => {
-    fetch(`${API_BASE}/profiles`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(await res.text())
-        return res.json()
-      })
-      .then((data: any[]) => {
-        const profiles = data.map(normalizeProfile)
+    supabase
+      .from('Profile')
+      .select('*')
+      .order('createdAt', { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Failed to fetch profiles from Supabase:', error)
+          setLoading(false)
+          return
+        }
+        
+        const profiles = (data || []).map(normalizeProfile)
         
         setState((prev) => {
           let activeId = prev.activeProfileId
@@ -82,9 +87,8 @@ export function ProfileStoreProvider({ children }: PropsWithChildren) {
           }
           return { profiles, activeProfileId: activeId }
         })
+        setLoading(false)
       })
-      .catch((err) => console.error('Failed to fetch profiles:', err))
-      .finally(() => setLoading(false))
   }, [])
 
   const activeProfile = useMemo(() => {
@@ -101,48 +105,29 @@ export function ProfileStoreProvider({ children }: PropsWithChildren) {
       activeProfileId: state.activeProfileId,
       activeProfile,
       hasProfiles: state.profiles.length > 0,
-      createProfile: (profile) => {
-        const tempId = `temp-${Date.now()}`
-        const nextProfile: UserProfileRecord = {
-          ...profile,
-          id: tempId,
-        }
-        
-        // Optimistic UI update
-        setState((prev) => ({
-          profiles: [nextProfile, ...prev.profiles],
-          activeProfileId: tempId,
-        }))
-        localStorage.setItem(STORAGE_KEY, tempId)
+      createProfile: async (profile) => {
+        try {
+          const { data, error } = await supabase
+            .from('Profile')
+            .insert(mapProfileToBackend({ ...profile, id: crypto.randomUUID() }))
+            .select()
+            .single()
 
-        // Background API call
-        fetch(`${API_BASE}/profiles`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(mapProfileToBackend(nextProfile)),
-        })
-          .then(async (res) => {
-            if (!res.ok) {
-              throw new Error(await res.text())
-            }
-            return res.json()
-          })
-          .then((data) => {
-            const realProfile = normalizeProfile(data)
-            setState((prev) => {
-              const newActiveId = prev.activeProfileId === tempId ? realProfile.id : prev.activeProfileId
-              if (newActiveId === realProfile.id) {
-                localStorage.setItem(STORAGE_KEY, realProfile.id)
-              }
-              return {
-                profiles: prev.profiles.map((p) => (p.id === tempId ? realProfile : p)),
-                activeProfileId: newActiveId,
-              }
-            })
-          })
-          .catch((err) => console.error('Failed to create profile:', err))
+          if (error) throw error
+
+          if (data) {
+            const savedProfile = normalizeProfile(data)
+            setState((prev) => ({
+              profiles: [savedProfile, ...prev.profiles],
+              activeProfileId: savedProfile.id,
+            }))
+            localStorage.setItem(STORAGE_KEY, savedProfile.id)
+          }
+        } catch (error) {
+          console.error('Failed to create profile:', error)
+        }
       },
-      updateProfile: (id, profile) => {
+      updateProfile: async (id, profile) => {
         const updatedProfile = { ...profile, id }
         
         // Optimistic UI update
@@ -152,25 +137,26 @@ export function ProfileStoreProvider({ children }: PropsWithChildren) {
         }))
 
         // Background API call
-        fetch(`${API_BASE}/profiles/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(mapProfileToBackend(updatedProfile)),
-        })
-          .then(async (res) => {
-            if (!res.ok) {
-              throw new Error(await res.text())
-            }
-            return res.json()
-          })
-          .then((data) => {
+        try {
+          const { data, error } = await supabase
+            .from('Profile')
+            .update(mapProfileToBackend(updatedProfile))
+            .eq('id', id)
+            .select()
+            .single()
+
+          if (error) throw error
+
+          if (data) {
             const realProfile = normalizeProfile(data)
             setState((prev) => ({
               ...prev,
               profiles: prev.profiles.map((item) => (item.id === realProfile.id ? realProfile : item)),
             }))
-          })
-          .catch((err) => console.error('Failed to update profile:', err))
+          }
+        } catch (error) {
+          console.error('Failed to update profile:', error)
+        }
       },
       setActiveProfileId: (id) => {
         localStorage.setItem(STORAGE_KEY, id ?? '')
@@ -179,7 +165,7 @@ export function ProfileStoreProvider({ children }: PropsWithChildren) {
           activeProfileId: id,
         }))
       },
-      clearAllProfiles: () => {
+      clearAllProfiles: async () => {
         // Optimistic UI update
         setState({
           profiles: [],
@@ -188,9 +174,16 @@ export function ProfileStoreProvider({ children }: PropsWithChildren) {
         localStorage.removeItem(STORAGE_KEY)
 
         // Background API call
-        fetch(`${API_BASE}/profiles/all`, { method: 'DELETE' }).catch((err) =>
-          console.error('Failed to clear profiles:', err),
-        )
+        try {
+          const { error } = await supabase
+            .from('Profile')
+            .delete()
+            .neq('id', '00000000-0000-0000-0000-000000000000') // Deletes all rows
+
+          if (error) throw error
+        } catch (error) {
+          console.error('Failed to clear profiles:', error)
+        }
       },
     }),
     [activeProfile, state.activeProfileId, state.profiles],
