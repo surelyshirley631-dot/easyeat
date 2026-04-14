@@ -44,10 +44,207 @@ type DayMode = 'training' | 'rest'
 type MealKey = '早餐' | '午餐' | '晚餐'
 type NutrientKey = 'kcal' | 'protein' | 'carbs' | 'fat' | 'fiber'
 type TrainingWindow = 'early' | 'noon' | 'afternoon' | 'night'
+type Locale = 'zh' | 'en' | 'it' | 'es'
 type IntakeEntry = Record<NutrientKey, number>
 type IntakeMap = Record<MealKey, IntakeEntry>
 
 type TrainingEntry = { plan: string; burnedKcal: number }
+
+const LOCALE_STORAGE_KEY = 'easyeat_locale'
+
+const localeLabels: Record<Locale, string> = {
+  zh: '中文',
+  en: 'English',
+  it: 'Italiano',
+  es: 'Espanol',
+}
+
+const i18n = {
+  zh: {
+    greeting: '你好',
+    lockPrefix: '锁定时段',
+    syncing: '同步中...',
+    synced: '已保存至云端',
+    offline: '离线状态',
+    language: '语言',
+    dayTraining: '训练日',
+    dayRest: '休息日',
+    fiber: '膳食纤维',
+    consumed: '已摄入',
+    target: '目标',
+    remaining: '剩余',
+    trainingRecord: '训练记录',
+    trainingPlan: '训练计划',
+    trainingPlanPlaceholder: '如：胸背超级组 / 跑步 5km',
+    burnedKcal: '消耗热量 (kcal)',
+    savedToLocal: '已保存到本地',
+    profileNew: '新建档案',
+    clearAll: '清除所有数据',
+    uploadFoodDB: '上传自定义食物库 (CSV/JSON)',
+    voiceNotSupported: '您的浏览器不支持语音输入',
+    uploadSuccess: '成功导入',
+    uploadRecordsSuffix: '条自定义食物数据',
+    uploadFailed: '文件解析失败，请确保格式正确(支持 JSON 或 CSV。CSV列顺序为: 食物名称,热量,蛋白质,碳水,脂肪,纤维)',
+    inputPlaceholder: '今天中午吃了一碗牛肉面...',
+    unsupportedFileType: '不支持的文件格式',
+    unknownFood: '未知食物',
+    noFoodRecognized: '未识别到具体食物',
+    preciseCalc: '精确计算',
+    manualRecordHint: '点击手动记录',
+    carbSuggestionPrefix: '建议碳水约',
+    nutrientKcal: '热量',
+    nutrientProtein: '蛋白',
+    nutrientCarbs: '碳水',
+    nutrientFat: '脂肪',
+    nutrientFiber: '纤维',
+    winEarly: '早起练',
+    winNoon: '午间练',
+    winAfternoon: '下午练',
+    winNight: '晚后练',
+    ringKcal: '热量',
+    ringProtein: '蛋白质',
+    ringCarbs: '碳水',
+    ringFat: '脂肪',
+  },
+  en: {
+    greeting: 'Hello',
+    lockPrefix: 'Locked window',
+    syncing: 'Syncing...',
+    synced: 'Saved to cloud',
+    offline: 'Offline',
+    language: 'Language',
+    dayTraining: 'Training',
+    dayRest: 'Rest',
+    fiber: 'Fiber',
+    consumed: 'Consumed',
+    target: 'Target',
+    remaining: 'Remaining',
+    trainingRecord: 'Workout Log',
+    trainingPlan: 'Workout Plan',
+    trainingPlanPlaceholder: 'e.g. Chest/Back superset or 5km run',
+    burnedKcal: 'Calories Burned (kcal)',
+    savedToLocal: 'Saved to local',
+    profileNew: 'New Profile',
+    clearAll: 'Clear All Data',
+    uploadFoodDB: 'Upload custom food DB (CSV/JSON)',
+    voiceNotSupported: 'Your browser does not support voice input',
+    uploadSuccess: 'Imported',
+    uploadRecordsSuffix: 'custom food records',
+    uploadFailed: 'Failed to parse file. Use JSON or CSV (columns: food,kcal,protein,carbs,fat,fiber).',
+    inputPlaceholder: 'I had beef noodles for lunch...',
+    unsupportedFileType: 'Unsupported file type',
+    unknownFood: 'Unknown food',
+    noFoodRecognized: 'No food recognized',
+    preciseCalc: 'Precise calc',
+    manualRecordHint: 'Tap to record manually',
+    carbSuggestionPrefix: 'Suggested carbs',
+    nutrientKcal: 'Calories',
+    nutrientProtein: 'Protein',
+    nutrientCarbs: 'Carbs',
+    nutrientFat: 'Fat',
+    nutrientFiber: 'Fiber',
+    winEarly: 'Early',
+    winNoon: 'Noon',
+    winAfternoon: 'Afternoon',
+    winNight: 'Night',
+    ringKcal: 'Calories',
+    ringProtein: 'Protein',
+    ringCarbs: 'Carbs',
+    ringFat: 'Fat',
+  },
+  it: {
+    greeting: 'Ciao',
+    lockPrefix: 'Fascia bloccata',
+    syncing: 'Sincronizzazione...',
+    synced: 'Salvato nel cloud',
+    offline: 'Offline',
+    language: 'Lingua',
+    dayTraining: 'Allenamento',
+    dayRest: 'Riposo',
+    fiber: 'Fibre',
+    consumed: 'Assunto',
+    target: 'Obiettivo',
+    remaining: 'Rimanente',
+    trainingRecord: 'Registro Allenamento',
+    trainingPlan: 'Piano Allenamento',
+    trainingPlanPlaceholder: 'es. Superset petto/schiena o corsa 5km',
+    burnedKcal: 'Calorie Bruciate (kcal)',
+    savedToLocal: 'Salvato in locale',
+    profileNew: 'Nuovo Profilo',
+    clearAll: 'Cancella Tutto',
+    uploadFoodDB: 'Carica database cibi (CSV/JSON)',
+    voiceNotSupported: 'Il browser non supporta l input vocale',
+    uploadSuccess: 'Importati',
+    uploadRecordsSuffix: 'record alimentari personalizzati',
+    uploadFailed: 'Errore di parsing file. Usa JSON o CSV (colonne: cibo,kcal,proteine,carboidrati,grassi,fibre).',
+    inputPlaceholder: 'Ho mangiato noodles di manzo a pranzo...',
+    unsupportedFileType: 'Formato file non supportato',
+    unknownFood: 'Cibo sconosciuto',
+    noFoodRecognized: 'Nessun alimento riconosciuto',
+    preciseCalc: 'Calcolo preciso',
+    manualRecordHint: 'Tocca per inserire manualmente',
+    carbSuggestionPrefix: 'Carboidrati consigliati',
+    nutrientKcal: 'Calorie',
+    nutrientProtein: 'Proteine',
+    nutrientCarbs: 'Carboidrati',
+    nutrientFat: 'Grassi',
+    nutrientFiber: 'Fibre',
+    winEarly: 'Mattina',
+    winNoon: 'Mezzogiorno',
+    winAfternoon: 'Pomeriggio',
+    winNight: 'Sera',
+    ringKcal: 'Calorie',
+    ringProtein: 'Proteine',
+    ringCarbs: 'Carboidrati',
+    ringFat: 'Grassi',
+  },
+  es: {
+    greeting: 'Hola',
+    lockPrefix: 'Franja bloqueada',
+    syncing: 'Sincronizando...',
+    synced: 'Guardado en la nube',
+    offline: 'Sin conexion',
+    language: 'Idioma',
+    dayTraining: 'Entreno',
+    dayRest: 'Descanso',
+    fiber: 'Fibra',
+    consumed: 'Consumido',
+    target: 'Objetivo',
+    remaining: 'Restante',
+    trainingRecord: 'Registro de Entreno',
+    trainingPlan: 'Plan de Entreno',
+    trainingPlanPlaceholder: 'ej. Superserie pecho/espalda o correr 5km',
+    burnedKcal: 'Calorias Quemadas (kcal)',
+    savedToLocal: 'Guardado localmente',
+    profileNew: 'Nuevo Perfil',
+    clearAll: 'Borrar Todo',
+    uploadFoodDB: 'Subir base de alimentos (CSV/JSON)',
+    voiceNotSupported: 'Tu navegador no admite entrada de voz',
+    uploadSuccess: 'Importados',
+    uploadRecordsSuffix: 'registros de alimentos personalizados',
+    uploadFailed: 'Error al analizar archivo. Usa JSON o CSV (columnas: alimento,kcal,proteina,carbohidratos,grasa,fibra).',
+    inputPlaceholder: 'Comi fideos con carne al almuerzo...',
+    unsupportedFileType: 'Tipo de archivo no compatible',
+    unknownFood: 'Alimento desconocido',
+    noFoodRecognized: 'No se reconocieron alimentos',
+    preciseCalc: 'Calculo preciso',
+    manualRecordHint: 'Toca para registrar manualmente',
+    carbSuggestionPrefix: 'Carbohidratos sugeridos',
+    nutrientKcal: 'Calorias',
+    nutrientProtein: 'Proteina',
+    nutrientCarbs: 'Carbohidratos',
+    nutrientFat: 'Grasa',
+    nutrientFiber: 'Fibra',
+    winEarly: 'Temprano',
+    winNoon: 'Mediodia',
+    winAfternoon: 'Tarde',
+    winNight: 'Noche',
+    ringKcal: 'Calorias',
+    ringProtein: 'Proteina',
+    ringCarbs: 'Carbohidratos',
+    ringFat: 'Grasa',
+  },
+} as const
 
 const meals: MealKey[] = ['早餐', '午餐', '晚餐']
 
@@ -72,17 +269,16 @@ const anchorToWindow = (anchor: TrainingAnchor): TrainingWindow => {
   return 'night'
 }
 
-const windowToLabel = (window: TrainingWindow) => {
-  if (window === 'early') {
-    return '早起练'
-  }
-  if (window === 'noon') {
-    return '午间练'
-  }
-  if (window === 'afternoon') {
-    return '下午练'
-  }
-  return '晚后练'
+const windowToLabel = (window: TrainingWindow, locale: Locale) => {
+  const key =
+    window === 'early'
+      ? 'winEarly'
+      : window === 'noon'
+      ? 'winNoon'
+      : window === 'afternoon'
+      ? 'winAfternoon'
+      : 'winNight'
+  return i18n[locale][key]
 }
 
   const cardStyle =
@@ -131,6 +327,15 @@ function App() {
     customRestCarbs: '',
     customRestFat: '',
   })
+  const [locale, setLocale] = useState<Locale>(() => {
+    const saved = localStorage.getItem(LOCALE_STORAGE_KEY) as Locale | null
+    return saved && saved in i18n ? saved : 'zh'
+  })
+  const t = i18n[locale]
+
+  useEffect(() => {
+    localStorage.setItem(LOCALE_STORAGE_KEY, locale)
+  }, [locale])
 
   const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA'), []) // Format: YYYY-MM-DD
   const contextKey = `${activeProfileId ?? 'none'}:${dayMode}`
@@ -376,7 +581,7 @@ function App() {
     }
     return [
       {
-        label: '热量',
+        label: t.ringKcal,
         color: '#FF3B30',
         consumed: consumedTotals.kcal,
         target: plan.calorieTarget,
@@ -384,7 +589,7 @@ function App() {
         unit: 'kcal',
       },
       {
-        label: '蛋白质',
+        label: t.ringProtein,
         color: '#FF9500',
         consumed: consumedTotals.protein,
         target: Math.round(plan.macroResult.proteinGrams),
@@ -392,7 +597,7 @@ function App() {
         unit: 'g',
       },
       {
-        label: '碳水',
+        label: t.ringCarbs,
         color: '#FFCC00',
         consumed: consumedTotals.carbs,
         target: Math.round(plan.macroResult.carbsGrams),
@@ -400,7 +605,7 @@ function App() {
         unit: 'g',
       },
       {
-        label: '脂肪',
+        label: t.ringFat,
         color: '#007AFF',
         consumed: consumedTotals.fat,
         target: Math.round(plan.macroResult.fatGrams),
@@ -408,7 +613,7 @@ function App() {
         unit: 'g',
       },
     ]
-  }, [consumedTotals, plan, remaining])
+  }, [consumedTotals, plan, remaining, t])
 
   const carbDistribution = useMemo(() => {
     if (!plan || !activeProfile) {
@@ -884,22 +1089,37 @@ function App() {
       <div className="mx-auto max-w-[1000px]">
         <header className="mb-6 flex items-center justify-between px-2">
           <div>
-            <h1 className="text-[28px] font-bold tracking-tight">你好，{activeProfile.name}</h1>
+            <h1 className="text-[28px] font-bold tracking-tight">{t.greeting}，{activeProfile.name}</h1>
             <p className="mt-1 inline-flex items-center gap-1.5 text-[14px] text-[#8E8E93]">
               <Clock3 className="h-4 w-4 text-[#007AFF]" />
-              锁定时段：{activeProfile.trainingAnchor} · BMR {plan.bmr} · TDEE {tdee}
+              {t.lockPrefix}: {windowToLabel(anchorToWindow(activeProfile.trainingAnchor), locale)} · BMR {plan.bmr} · TDEE {tdee}
               <span className="ml-2 inline-flex items-center gap-1 text-[12px] font-medium">
                 {syncStatus === 'syncing' ? (
-                  <span className="text-[#007AFF] animate-pulse inline-flex items-center gap-1"><CloudLightning className="h-3 w-3" /> 同步中...</span>
+                  <span className="text-[#007AFF] animate-pulse inline-flex items-center gap-1"><CloudLightning className="h-3 w-3" /> {t.syncing}</span>
                 ) : syncStatus === 'synced' ? (
-                  <span className="text-[#34C759] inline-flex items-center gap-1"><Cloud className="h-3 w-3" /> 已保存至云端</span>
+                  <span className="text-[#34C759] inline-flex items-center gap-1"><Cloud className="h-3 w-3" /> {t.synced}</span>
                 ) : syncStatus === 'error' ? (
-                  <span className="text-[#FF3B30] inline-flex items-center gap-1"><CloudOff className="h-3 w-3" /> 离线状态</span>
+                  <span className="text-[#FF3B30] inline-flex items-center gap-1"><CloudOff className="h-3 w-3" /> {t.offline}</span>
                 ) : null}
               </span>
             </p>
           </div>
-          <button
+          <div className="flex items-center gap-2">
+            <label className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-xs text-[#8E8E93] shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+              <span>{t.language}</span>
+              <select
+                value={locale}
+                onChange={(event) => setLocale(event.target.value as Locale)}
+                className="bg-transparent text-[#1C1C1E] outline-none"
+              >
+                {(Object.keys(localeLabels) as Locale[]).map((key) => (
+                  <option key={key} value={key}>
+                    {localeLabels[key]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
             onClick={() => {
               setEditingProfileId(activeProfile.id)
               setOnboardingForm({
@@ -928,7 +1148,8 @@ function App() {
             className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#007AFF] shadow-[0_4px_15px_rgba(0,0,0,0.05)] transition-transform hover:scale-105"
           >
             <UserCircle2 className="h-6 w-6" />
-          </button>
+            </button>
+          </div>
         </header>
 
         <section className={`${cardStyle} mb-6 p-6`}>
@@ -939,7 +1160,7 @@ function App() {
                 dayMode === 'training' ? 'bg-[#007AFF] text-white' : 'text-[#8E8E93]'
               }`}
             >
-              训练日
+              {t.dayTraining}
             </button>
             <button
               onClick={() => setDayMode('rest')}
@@ -947,15 +1168,15 @@ function App() {
                 dayMode === 'rest' ? 'bg-[#007AFF] text-white' : 'text-[#8E8E93]'
               }`}
             >
-              休息日
+              {t.dayRest}
             </button>
           </div>
           <div className="mb-4 flex flex-wrap gap-2 text-sm">
             {[
-              { key: 'early', label: '早起练' },
-              { key: 'noon', label: '午间练' },
-              { key: 'afternoon', label: '下午练' },
-              { key: 'night', label: '晚后练' },
+              { key: 'early', label: t.winEarly },
+              { key: 'noon', label: t.winNoon },
+              { key: 'afternoon', label: t.winAfternoon },
+              { key: 'night', label: t.winNight },
             ].map((item) => {
               const selected = activeTrainingWindow === item.key
               return (
@@ -986,13 +1207,14 @@ function App() {
                 target={ring.target}
                 remain={ring.remain}
                 unit={ring.unit}
+                consumedLabel={t.consumed}
               />
             ))}
           </div>
           <div className="mt-4 rounded-xl bg-[#F7FAF8] p-3">
             <p className="mb-2 inline-flex items-center gap-1 text-sm text-[#8E8E93]">
               <Leaf className="h-4 w-4 text-[#34C759]" />
-              膳食纤维
+              {t.fiber}
             </p>
             <div className="h-2 w-full overflow-hidden rounded-full bg-[#E5F5EA]">
               <motion.div
@@ -1005,7 +1227,7 @@ function App() {
               />
             </div>
             <p className="mt-2 text-xs text-[#8E8E93]">
-              已摄入 {consumedTotals.fiber}g / 目标 {fiberTarget}g · 剩余 {remaining.fiber}g
+              {t.consumed} {consumedTotals.fiber}g / {t.target} {fiberTarget}g · {t.remaining} {remaining.fiber}g
             </p>
           </div>
         </section>
@@ -1014,6 +1236,7 @@ function App() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="md:col-span-1">
               <AIFoodInput
+                locale={locale}
                 onAddFood={(meal, added) => {
                   addMealIntake(meal, added)
                 }}
@@ -1023,21 +1246,21 @@ function App() {
               <div className={`${cardStyle} flex h-full flex-col p-4`}>
                 <p className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-[#1C1C1E]">
                   <Dumbbell className="h-4 w-4 text-[#007AFF]" />
-                  训练记录
+                  {t.trainingRecord}
                 </p>
                 <div className="grid flex-1 gap-3 md:grid-cols-2">
                   <label className="flex flex-col space-y-1.5">
-                    <span className="text-xs text-[#8E8E93]">训练计划</span>
+                    <span className="text-xs text-[#8E8E93]">{t.trainingPlan}</span>
                     <input
                       type="text"
                       value={training.plan}
-                      placeholder="如：胸背超级组 / 跑步 5km"
+                      placeholder={t.trainingPlanPlaceholder}
                       onChange={(e) => setTrainingValue('plan', e.target.value)}
                       className="w-full flex-1 rounded-xl border border-[#E6E6EA] px-3 py-2 text-[13px] outline-none focus:border-[#007AFF]"
                     />
                   </label>
                   <label className="flex flex-col space-y-1.5">
-                    <span className="text-xs text-[#8E8E93]">消耗热量 (kcal)</span>
+                    <span className="text-xs text-[#8E8E93]">{t.burnedKcal}</span>
                     <input
                       type="number"
                       value={training.burnedKcal || ''}
@@ -1062,7 +1285,8 @@ function App() {
               meal={meal}
               intake={intake[meal]}
               carbSuggestion={carbDistribution[meal].carbs}
-              windowLabel={windowToLabel(activeTrainingWindow)}
+              windowLabel={windowToLabel(activeTrainingWindow, locale)}
+              locale={locale}
               onChange={(key, value) => setMealValue(meal, key, value)}
             />
           ))}
@@ -1076,7 +1300,7 @@ function App() {
               exit={{ opacity: 0, y: -8 }}
               className="fixed right-5 top-5 rounded-full bg-[#007AFF] px-3 py-1 text-xs text-white"
             >
-              ✓ 已保存到 LocalStorage
+              ✓ {t.savedToLocal}
             </motion.div>
           )}
         </AnimatePresence>
@@ -1115,14 +1339,14 @@ function App() {
                     className="inline-flex items-center gap-1 rounded-lg border border-[#E6E6EA] px-3 py-1.5 text-sm text-[#007AFF]"
                   >
                     <Plus className="h-4 w-4" />
-                    新建档案
+                    {t.profileNew}
                   </button>
                   <button
                     onClick={resetAll}
                     className="inline-flex items-center gap-1 rounded-lg border border-[#E6E6EA] px-3 py-1.5 text-sm text-[#8E8E93]"
                   >
                     <Trash2 className="h-4 w-4" />
-                    清除所有数据
+                    {t.clearAll}
                   </button>
                 </div>
                 
@@ -1361,6 +1585,7 @@ function MacroRingCard({
   target,
   remain,
   unit,
+  consumedLabel,
 }: {
   label: string
   color: string
@@ -1368,6 +1593,7 @@ function MacroRingCard({
   target: number
   remain: number
   unit: string
+  consumedLabel: string
 }) {
   const radius = 42
   const circumference = 2 * Math.PI * radius
@@ -1414,7 +1640,7 @@ function MacroRingCard({
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between text-xs">
-        <span className="text-[#8E8E93]">已摄入 {consumed}</span>
+        <span className="text-[#8E8E93]">{consumedLabel} {consumed}</span>
         <span className="font-medium text-[#1C1C1E]">/ {target}</span>
       </div>
     </div>
@@ -1426,14 +1652,17 @@ function MealCard({
   intake,
   carbSuggestion,
   windowLabel,
+  locale,
   onChange,
 }: {
   meal: MealKey
   intake: IntakeEntry
   carbSuggestion: number
   windowLabel: string
+  locale: Locale
   onChange: (key: NutrientKey, value: string) => void
 }) {
+  const text = i18n[locale]
   const [expanded, setExpanded] = useState(false)
   const hasData = intake.kcal > 0 || intake.protein > 0 || intake.carbs > 0 || intake.fat > 0
 
@@ -1451,10 +1680,10 @@ function MealCard({
           </p>
           {hasData ? (
             <p className="mt-1 text-xs text-[#8E8E93]">
-              {intake.kcal} kcal · {intake.protein}g 蛋 · {intake.carbs}g 碳 · {intake.fat}g 脂
+              {intake.kcal} kcal · {intake.protein}g {text.nutrientProtein} · {intake.carbs}g {text.nutrientCarbs} · {intake.fat}g {text.nutrientFat}
             </p>
           ) : (
-            <p className="mt-1 text-xs text-[#C7C7CC]">点击手动记录</p>
+            <p className="mt-1 text-xs text-[#C7C7CC]">{text.manualRecordHint}</p>
           )}
         </div>
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F2F7] text-[#8E8E93]">
@@ -1472,15 +1701,15 @@ function MealCard({
             className="border-t border-[#F2F2F7] bg-[#F9FAFD]"
           >
             <div className="space-y-3 p-5">
-              <NutrientInput label="热量" color="#FF3B30" value={intake.kcal} onChange={(val) => onChange('kcal', val)} />
-              <NutrientInput label="蛋白" color="#FF9500" value={intake.protein} onChange={(val) => onChange('protein', val)} />
-              <NutrientInput label="碳水" color="#FFCC00" value={intake.carbs} onChange={(val) => onChange('carbs', val)} />
-              <NutrientInput label="脂肪" color="#007AFF" value={intake.fat} onChange={(val) => onChange('fat', val)} />
-              <NutrientInput label="纤维" color="#34C759" value={intake.fiber} onChange={(val) => onChange('fiber', val)} />
+              <NutrientInput label={text.nutrientKcal} color="#FF3B30" value={intake.kcal} onChange={(val) => onChange('kcal', val)} />
+              <NutrientInput label={text.nutrientProtein} color="#FF9500" value={intake.protein} onChange={(val) => onChange('protein', val)} />
+              <NutrientInput label={text.nutrientCarbs} color="#FFCC00" value={intake.carbs} onChange={(val) => onChange('carbs', val)} />
+              <NutrientInput label={text.nutrientFat} color="#007AFF" value={intake.fat} onChange={(val) => onChange('fat', val)} />
+              <NutrientInput label={text.nutrientFiber} color="#34C759" value={intake.fiber} onChange={(val) => onChange('fiber', val)} />
               <div className="mt-4 rounded-xl bg-white p-3 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
                 <p className="inline-flex items-center gap-1 text-xs text-[#8E8E93]">
                   <Wheat className="h-3.5 w-3.5 text-[#FFCC00]" />
-                  {windowLabel}建议碳水约 <span className="font-medium text-[#1C1C1E]">{carbSuggestion}g</span>
+                  {windowLabel} {text.carbSuggestionPrefix} <span className="font-medium text-[#1C1C1E]">{carbSuggestion}g</span>
                 </p>
               </div>
             </div>
@@ -1572,10 +1801,13 @@ function OnboardingInput({
 export default App
 
 function AIFoodInput({
+  locale,
   onAddFood,
 }: {
+  locale: Locale
   onAddFood: (meal: MealKey, added: IntakeEntry) => void
 }) {
+  const t = i18n[locale]
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
@@ -1618,17 +1850,17 @@ function AIFoodInput({
             }
           }
         } else {
-          throw new Error('不支持的文件格式')
+          throw new Error(t.unsupportedFileType)
         }
 
         const merged = { ...customFoodDB, ...newDB }
         setCustomFoodDB(merged)
         localStorage.setItem('easyeat_custom_food_db', JSON.stringify(merged))
         
-        setToastMsg({ text: `成功导入 ${Object.keys(newDB).length} 条自定义食物数据`, meal: '系统' })
+        setToastMsg({ text: `${t.uploadSuccess} ${Object.keys(newDB).length} ${t.uploadRecordsSuffix}`, meal: 'system' })
         window.setTimeout(() => setToastMsg(null), 3000)
       } catch (err) {
-        alert('文件解析失败，请确保格式正确(支持 JSON 或 CSV。CSV列顺序为: 食物名称,热量,蛋白质,碳水,脂肪,纤维)')
+        alert(t.uploadFailed)
       }
       
       // 清空 input 值，允许重复上传同一文件
@@ -1641,7 +1873,7 @@ function AIFoodInput({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
-      alert('您的浏览器不支持语音输入')
+      alert(t.voiceNotSupported)
       return
     }
 
@@ -1719,7 +1951,7 @@ function AIFoodInput({
           if (foodName.includes('米饭')) defaultWeight = 150 // 一碗米饭默认 150g
           extractedItems.push({ food: foodName, weight: defaultWeight })
         } else {
-          extractedItems.push({ food: '未知食物', weight: 100 })
+          extractedItems.push({ food: t.unknownFood, weight: 100 })
         }
       }
 
@@ -1783,8 +2015,8 @@ function AIFoodInput({
       setLoading(false)
       setText('')
       
-      const logStr = matchedLogs.length > 0 ? matchedLogs.join(', ') : '未识别到具体食物'
-      setToastMsg({ text: `精确计算 ${calculated.kcal}kcal [${logStr}]`, meal: targetMeal })
+      const logStr = matchedLogs.length > 0 ? matchedLogs.join(', ') : t.noFoodRecognized
+      setToastMsg({ text: `${t.preciseCalc} ${calculated.kcal}kcal [${logStr}]`, meal: targetMeal })
       window.setTimeout(() => setToastMsg(null), 5000)
     }, 800)
   }
@@ -1802,7 +2034,7 @@ function AIFoodInput({
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="今天中午吃了一碗牛肉面..."
+          placeholder={t.inputPlaceholder}
           className="w-0 flex-1 bg-transparent text-[14px] text-[#1C1C1E] outline-none placeholder:text-[#8E8E93]"
           disabled={loading}
         />
@@ -1818,7 +2050,7 @@ function AIFoodInput({
         
         <button
           type="button"
-          title="上传自定义食物库 (CSV/JSON)"
+          title={t.uploadFoodDB}
           onClick={() => fileInputRef.current?.click()}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F2F2F7] text-[#8E8E93] transition-colors hover:bg-[#E5E5EA] hover:text-[#007AFF]"
         >
