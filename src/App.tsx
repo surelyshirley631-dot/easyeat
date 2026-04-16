@@ -51,6 +51,13 @@ type IntakeMap = Record<MealKey, IntakeEntry>
 type TrainingEntry = { plan: string; burnedKcal: number }
 
 const LOCALE_STORAGE_KEY = 'easyeat_locale'
+const detectBrowserLocale = (): Locale => {
+  const lang = navigator.language.toLowerCase()
+  if (lang.startsWith('en')) return 'en'
+  if (lang.startsWith('it')) return 'it'
+  if (lang.startsWith('es')) return 'es'
+  return 'zh'
+}
 
 const localeLabels: Record<Locale, string> = {
   zh: '中文',
@@ -105,6 +112,24 @@ const i18n = {
     ringProtein: '蛋白质',
     ringCarbs: '碳水',
     ringFat: '脂肪',
+    onboardingTitle: '开始你的精密减脂',
+    onboardingSubForm: '输入基本信息以计算你的专属代谢模型',
+    onboardingSubReview: '预览系统为你计算的动态碳水循环方案',
+    fieldName: '姓名',
+    fieldSex: '性别',
+    fieldAge: '年龄',
+    fieldHeight: '身高 (cm)',
+    fieldWeight: '体重 (kg)',
+    fieldActivity: '活动系数',
+    fieldPopulation: '人群属性',
+    fieldAnchor: '训练时机预设',
+    fieldTrainOffset: '训练日热量偏移',
+    fieldRestOffset: '休息日热量偏移',
+    male: '男性',
+    female: '女性',
+    populationStrength: '力量训练者',
+    populationGeneral: '普通人群',
+    nextPlan: '生成我的代谢模型与方案',
   },
   en: {
     greeting: 'Hello',
@@ -151,6 +176,24 @@ const i18n = {
     ringProtein: 'Protein',
     ringCarbs: 'Carbs',
     ringFat: 'Fat',
+    onboardingTitle: 'Start Your Fat Loss Plan',
+    onboardingSubForm: 'Enter basic info to build your metabolism model',
+    onboardingSubReview: 'Preview your dynamic carb-cycling plan',
+    fieldName: 'Name',
+    fieldSex: 'Sex',
+    fieldAge: 'Age',
+    fieldHeight: 'Height (cm)',
+    fieldWeight: 'Weight (kg)',
+    fieldActivity: 'Activity Level',
+    fieldPopulation: 'Population Type',
+    fieldAnchor: 'Training Window',
+    fieldTrainOffset: 'Training Day Calorie Offset',
+    fieldRestOffset: 'Rest Day Calorie Offset',
+    male: 'Male',
+    female: 'Female',
+    populationStrength: 'Strength Athlete',
+    populationGeneral: 'General Population',
+    nextPlan: 'Generate My Plan',
   },
   it: {
     greeting: 'Ciao',
@@ -197,6 +240,24 @@ const i18n = {
     ringProtein: 'Proteine',
     ringCarbs: 'Carboidrati',
     ringFat: 'Grassi',
+    onboardingTitle: 'Inizia il tuo percorso',
+    onboardingSubForm: 'Inserisci i dati base per il tuo modello metabolico',
+    onboardingSubReview: 'Anteprima del piano dinamico di carboidrati',
+    fieldName: 'Nome',
+    fieldSex: 'Sesso',
+    fieldAge: 'Eta',
+    fieldHeight: 'Altezza (cm)',
+    fieldWeight: 'Peso (kg)',
+    fieldActivity: 'Livello Attivita',
+    fieldPopulation: 'Tipo di Popolazione',
+    fieldAnchor: 'Finestra Allenamento',
+    fieldTrainOffset: 'Offset Calorie Giorno Allenamento',
+    fieldRestOffset: 'Offset Calorie Giorno Riposo',
+    male: 'Maschio',
+    female: 'Femmina',
+    populationStrength: 'Atleta di Forza',
+    populationGeneral: 'Popolazione Generale',
+    nextPlan: 'Genera il mio piano',
   },
   es: {
     greeting: 'Hola',
@@ -243,6 +304,24 @@ const i18n = {
     ringProtein: 'Proteina',
     ringCarbs: 'Carbohidratos',
     ringFat: 'Grasa',
+    onboardingTitle: 'Comienza tu plan',
+    onboardingSubForm: 'Ingresa datos basicos para tu modelo metabolico',
+    onboardingSubReview: 'Vista previa del plan dinamico de carbohidratos',
+    fieldName: 'Nombre',
+    fieldSex: 'Sexo',
+    fieldAge: 'Edad',
+    fieldHeight: 'Altura (cm)',
+    fieldWeight: 'Peso (kg)',
+    fieldActivity: 'Nivel de Actividad',
+    fieldPopulation: 'Tipo de Poblacion',
+    fieldAnchor: 'Franja de Entreno',
+    fieldTrainOffset: 'Ajuste de Calorias Dia de Entreno',
+    fieldRestOffset: 'Ajuste de Calorias Dia de Descanso',
+    male: 'Hombre',
+    female: 'Mujer',
+    populationStrength: 'Atleta de Fuerza',
+    populationGeneral: 'Poblacion General',
+    nextPlan: 'Generar mi plan',
   },
 } as const
 
@@ -329,7 +408,7 @@ function App() {
   })
   const [locale, setLocale] = useState<Locale>(() => {
     const saved = localStorage.getItem(LOCALE_STORAGE_KEY) as Locale | null
-    return saved && saved in i18n ? saved : 'zh'
+    return saved && saved in i18n ? saved : detectBrowserLocale()
   })
   const t = i18n[locale]
 
@@ -830,13 +909,29 @@ function App() {
         >
           <div className="mx-auto max-w-3xl">
             <div className={`${cardStyle} p-8`}>
+              <div className="mb-4 flex justify-end">
+                <label className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-xs text-[#8E8E93] shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
+                  <span>{t.language}</span>
+                  <select
+                    value={locale}
+                    onChange={(event) => setLocale(event.target.value as Locale)}
+                    className="bg-transparent text-[#1C1C1E] outline-none"
+                  >
+                    {(Object.keys(localeLabels) as Locale[]).map((key) => (
+                      <option key={key} value={key}>
+                        {localeLabels[key]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <div className="mb-6 text-center">
                 <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#FFF2F0]">
                   <Flame className="h-11 w-11 text-[#FF9500]" />
                 </div>
-                <h1 className="text-3xl font-semibold">开始你的精密减脂</h1>
+                <h1 className="text-3xl font-semibold">{t.onboardingTitle}</h1>
                 <p className="mt-2 text-sm text-[#8E8E93]">
-                  {onboardingStep === 'form' ? '输入基本信息以计算你的专属代谢模型' : '预览系统为你计算的动态碳水循环方案'}
+                  {onboardingStep === 'form' ? t.onboardingSubForm : t.onboardingSubReview}
                 </p>
               </div>
 
@@ -844,14 +939,14 @@ function App() {
                 <>
                   <div className="grid gap-4 md:grid-cols-2">
                     <OnboardingInput
-                      label="姓名"
+                      label={t.fieldName}
                       value={onboardingForm.name}
                       onChange={(value) =>
                         setOnboardingForm((prev) => ({ ...prev, name: value }))
                       }
                     />
                     <label className="space-y-2">
-                      <span className="text-sm text-[#8E8E93]">性别</span>
+                      <span className="text-sm text-[#8E8E93]">{t.fieldSex}</span>
                       <select
                         value={onboardingForm.sex}
                         onChange={(event) =>
@@ -862,12 +957,12 @@ function App() {
                         }
                         className="w-full rounded-xl border border-[#E6E6EA] px-3 py-2 outline-none focus:border-[#007AFF]"
                       >
-                        <option value="male">男性</option>
-                        <option value="female">女性</option>
+                        <option value="male">{t.male}</option>
+                        <option value="female">{t.female}</option>
                       </select>
                     </label>
                     <OnboardingInput
-                      label="年龄"
+                      label={t.fieldAge}
                       value={onboardingForm.age}
                       onChange={(value) =>
                         setOnboardingForm((prev) => ({ ...prev, age: value }))
@@ -875,7 +970,7 @@ function App() {
                       numeric
                     />
                     <OnboardingInput
-                      label="身高 (cm)"
+                      label={t.fieldHeight}
                       value={onboardingForm.heightCm}
                       onChange={(value) =>
                         setOnboardingForm((prev) => ({ ...prev, heightCm: value }))
@@ -883,7 +978,7 @@ function App() {
                       numeric
                     />
                     <OnboardingInput
-                      label="体重 (kg)"
+                      label={t.fieldWeight}
                       value={onboardingForm.weightKg}
                       onChange={(value) =>
                         setOnboardingForm((prev) => ({ ...prev, weightKg: value }))
@@ -891,7 +986,7 @@ function App() {
                       numeric
                     />
                     <label className="space-y-2">
-                      <span className="text-sm text-[#8E8E93]">活动系数</span>
+                      <span className="text-sm text-[#8E8E93]">{t.fieldActivity}</span>
                       <select
                         value={onboardingForm.activityLevel}
                         onChange={(event) =>
@@ -909,7 +1004,7 @@ function App() {
                       </select>
                     </label>
                     <label className="space-y-2">
-                      <span className="text-sm text-[#8E8E93]">人群属性</span>
+                      <span className="text-sm text-[#8E8E93]">{t.fieldPopulation}</span>
                       <select
                         value={onboardingForm.populationType}
                         onChange={(event) =>
@@ -920,12 +1015,12 @@ function App() {
                         }
                         className="w-full rounded-xl border border-[#E6E6EA] px-3 py-2 outline-none focus:border-[#007AFF]"
                       >
-                        <option value="strength">力量训练者</option>
-                        <option value="general">普通人群</option>
+                        <option value="strength">{t.populationStrength}</option>
+                        <option value="general">{t.populationGeneral}</option>
                       </select>
                     </label>
                     <label className="space-y-2">
-                      <span className="text-sm text-[#8E8E93]">训练时机预设</span>
+                      <span className="text-sm text-[#8E8E93]">{t.fieldAnchor}</span>
                       <select
                         value={onboardingForm.trainingAnchor}
                         onChange={(event) =>
@@ -943,7 +1038,7 @@ function App() {
                       </select>
                     </label>
                     <OnboardingInput
-                      label="训练日热量偏移"
+                      label={t.fieldTrainOffset}
                       value={onboardingForm.trainingDayOffset}
                       onChange={(value) =>
                         setOnboardingForm((prev) => ({ ...prev, trainingDayOffset: value }))
@@ -951,7 +1046,7 @@ function App() {
                       numeric
                     />
                     <OnboardingInput
-                      label="休息日热量偏移"
+                      label={t.fieldRestOffset}
                       value={onboardingForm.restDayOffset}
                       onChange={(value) =>
                         setOnboardingForm((prev) => ({ ...prev, restDayOffset: value }))
@@ -967,7 +1062,7 @@ function App() {
                     className="mt-7 w-full rounded-xl bg-[#007AFF] py-3 text-sm font-medium text-white disabled:opacity-50"
                     disabled={!onboardingForm.name.trim()}
                   >
-                    生成我的代谢模型与方案
+                    {t.nextPlan}
                   </button>
                 </>
               ) : (
